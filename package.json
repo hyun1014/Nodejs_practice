@@ -4,6 +4,7 @@
   "description": "Node.js, Express framework practice",
   "main": "main.js",
   "dependencies": {
+    "body-parser": "^1.19.0",
     "express": "^4.17.1",
     "sanitize-html": "^1.27.0"
   },
