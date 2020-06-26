@@ -13,18 +13,21 @@ var title = undefined;
 var description = undefined;
 var fli = fs.readdirSync(`./data`, 'utf-8'); // 이건 그냥 시험삼아 Sync로
 var fli_template = template.make_list(fli);
-var control = `<a href="/create">Create post</a>`; //Create는 기본으로 항상 있음
+var default_control = `<a href="/create">Create post</a>`; //기본 control
+var target_control = default_control;
 var ret_template = undefined;
 
 app.get('/', (req, res) => {
     title = 'Index';
     description = "Express Practice";
+    control = default_control;
     ret_template = template.make_html(title, fli_template, description, control);
     res.send(ret_template);
 });
 
 app.get('/page/:page', (req, res) => {
     title = path.parse(req.params.page).base;
+    control = target_control;
     fs.readFile(`data/${title}`, 'utf-8', (err, data) => {
         description = sani_html(data);
         ret_template = template.make_html(title, fli_template, description, control);
@@ -34,6 +37,7 @@ app.get('/page/:page', (req, res) => {
 
 app.get('/create', (req, res) => {
     title = 'Create';
+    control = "Creating...";
     description = `
         <form action='/create_process' method='POST'>
             Title: <input type='text' name='title' placeholder='title'><br>
@@ -42,7 +46,6 @@ app.get('/create', (req, res) => {
             <input type='submit' value="Submit!">
         </form>
     `;
-    control = "Creating...";
     ret_template = template.make_html(title, fli_template, description, control);
     res.send(ret_template);
 });
