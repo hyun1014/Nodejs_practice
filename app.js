@@ -28,7 +28,8 @@ app.get('/', (req, res) => {
 app.get('/page/:page', (req, res) => {
     title = path.parse(req.params.page).base;
     //control = default_control + " " + target_control; 얘는 안됨. ${title} 부분이 undefined로 채워짐
-    control = default_control + " " + `<a href="/update/${title}">Update this post</a>`;
+    control = default_control + " " + `<a href="/update/${title}">Update this post</a>` + " " +
+    `<form action='/delete_process' method='POST'><input type='hidden' name='target' value=${title}><input type='submit' value='Delete'></form>`;
     fs.readFile(`data/${title}`, 'utf-8', (err, data) => {
         description = sani_html(data);
         ret_template = template.make_html(title, fli_template, description, control);
@@ -134,12 +135,45 @@ app.post('/update_process', (req,res) => {
                     fli_template = template.make_list(new_fli);
                 }
                 // File list update done
-                res.writeHead(302, {Location: `/page/${post_title}`});
-                res.end();
+                /*
+                Read 부분에서 fs.readdir 이걸 계속 썼으면 이게 필요없다. Async가 이래서 좋은건가
+                */
+                res.redirect(`/page/${post_title}`);
             });
         });
     });
-})
+});
+
+app.post('/delete_process', (req, res) => {
+    var body = "";
+    req.on('data', (data) => {
+        body += data;
+
+        if(body.length > 1e6) // 데이터 값이 너무 크면 연결 끊음
+            req.socket.destroy();
+    });
+    req.on('end', (err) => {
+        if(err){
+            console.log(err);
+            throw err;
+        }
+        var post_data = qs.parse(body);
+        console.log(post_data); // post로 받은 값 확인
+        var post_target = path.parse(post_data.target).base;
+        fs.unlink(`data/${post_target}`, () => {
+            // File list update
+            var new_fli = [];
+            var fli_len = fli.length;
+            for(var i=0 ; i<fli_len ; i++)
+                if(fli[i] != post_target)
+                    new_fli.push(fli[i]);
+            fli = new_fli;
+            fli_template = template.make_list(new_fli);
+            // File list update done
+            res.redirect('/');
+        });
+    });
+});
 
 app.listen(PORT, '127.0.0.1', () => {
     console.log("Listening at port 3000...");
