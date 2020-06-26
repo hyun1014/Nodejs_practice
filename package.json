@@ -1,0 +1,24 @@
+{
+  "name": "express_p0",
+  "version": "1.0.0",
+  "description": "Node.js, Express framework practice",
+  "main": "main.js",
+  "dependencies": {
+    "express": "^4.17.1",
+    "sanitize-html": "^1.27.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hyun1014/Nodejs_practice.git"
+  },
+  "author": "hyun1014",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/hyun1014/Nodejs_practice/issues"
+  },
+  "homepage": "https://github.com/hyun1014/Nodejs_practice#readme"
+}
