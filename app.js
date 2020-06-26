@@ -14,7 +14,7 @@ var description = undefined;
 var fli = fs.readdirSync(`./data`, 'utf-8'); // 이건 그냥 시험삼아 Sync로
 var fli_template = template.make_list(fli);
 var default_control = `<a href="/create">Create post</a>`; //기본 control
-var target_control = default_control;
+//var target_control = '<a href="/update/${title}">Update this post</a>'; 얘는 안됨
 var ret_template = undefined;
 
 app.get('/', (req, res) => {
@@ -27,7 +27,8 @@ app.get('/', (req, res) => {
 
 app.get('/page/:page', (req, res) => {
     title = path.parse(req.params.page).base;
-    control = target_control;
+    //control = default_control + " " + target_control; 얘는 안됨. ${title} 부분이 undefined로 채워짐
+    control = default_control + " " + `<a href="/update/${title}">Update this post</a>`;
     fs.readFile(`data/${title}`, 'utf-8', (err, data) => {
         description = sani_html(data);
         ret_template = template.make_html(title, fli_template, description, control);
@@ -75,6 +76,70 @@ app.post('/create_process', (req, res) => {
         });
     });
 });
+
+app.get(`/update/:target`, (req, res) => {
+    var parsed_queryid = path.parse(req.params.target).base;
+    title = `Updating ${parsed_queryid}`;
+    control = "Updating...";
+    fs.readFile(`./data/${parsed_queryid}`, 'utf-8', (err, data) => {
+        if(err){
+            console.log(err);
+            throw err;
+        }
+        description = `
+        <form action='/update_process' method='POST'>
+            <input type='hidden' name='origin_title' value=${parsed_queryid}>
+            Title: <input type='text' name='title' value=${parsed_queryid}><br>
+            Description:<br>
+            <textarea name='description'>${data}</textarea><br>
+            <input type='submit' value="Submit!">
+        </form>
+        `;
+        ret_template = template.make_html(title, fli_template, description, control);
+        res.writeHead(200);
+        res.write(ret_template);
+        res.end();
+    });
+});
+
+app.post('/update_process', (req,res) => {
+    var body = "";
+    req.on('data', (data) => {
+        body += data;
+
+        if(body.length > 1e6) // 데이터 값이 너무 크면 연결 끊음
+            req.socket.destroy();
+    });
+    req.on('end', (err) => {
+        if(err){
+            console.log(err);
+            throw err;
+        }
+        var post_data = qs.parse(body);
+        console.log(post_data); // post로 받은 값 확인
+        var post_origin_title = path.parse(post_data.origin_title).base;
+        var post_title = path.parse(post_data.title).base;
+        var post_des = post_data.description;
+        fs.rename(`data/${post_origin_title}`, `data/${post_title}`, () => {
+            fs.writeFile(`data/${post_title}`, post_des, 'utf-8', () => {
+                // File list update
+                if(post_origin_title != post_title){
+                    var new_fli = [];
+                    var fli_len = fli.length;
+                    for(var i=0 ; i<fli_len ; i++)
+                        if(fli[i] != post_origin_title)
+                            new_fli.push(fli[i]);
+                    new_fli.push(post_title);
+                    fli = new_fli;
+                    fli_template = template.make_list(new_fli);
+                }
+                // File list update done
+                res.writeHead(302, {Location: `/page/${post_title}`});
+                res.end();
+            });
+        });
+    });
+})
 
 app.listen(PORT, '127.0.0.1', () => {
     console.log("Listening at port 3000...");
